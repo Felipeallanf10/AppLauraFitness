@@ -13,6 +13,10 @@ import {
   ChevronUp,
   Apple,
 } from 'lucide-react'
+import { useSupabaseSync } from './hooks/useSupabaseSync'
+
+const PHRASES = Array.from({ length: 50 }, (_, i) => `Mensagem do Felipe ${i + 1} — Te amo e torço por você!`)
+const SPOTIFY_PLAYLIST_URL = 'COLE_A_URL_DA_PLAYLIST_AQUI_NO_CODIGO'
 
 const App = () => {
   const [activeTab, setActiveTab] = useState('dieta')
@@ -49,9 +53,26 @@ const App = () => {
   const [showSettings, setShowSettings] = useState(false)
 
   // Mensagens estáticas (editar apenas no código fonte)
-  const phrases = Array.from({ length: 50 }, (_, i) => `Mensagem do Felipe ${i + 1} — Te amo e torço por você!`)
-  const spotifyPlaylistUrl = 'COLE_A_URL_DA_PLAYLIST_AQUI_NO_CODIGO'
+  const phrases = PHRASES
+  const spotifyPlaylistUrl = SPOTIFY_PLAYLIST_URL
   const fileInputRef = useRef(null)
+
+  const {
+    isConfigured: supabaseConfigured,
+    syncStatus: supabaseSyncStatus,
+    syncDetail: supabaseSyncDetail,
+    lastSyncedAt: supabaseLastSyncedAt,
+    pushToSupabase,
+    pullFromSupabase,
+    syncNow,
+  } = useSupabaseSync({
+    completedExercises,
+    expandedMeals,
+    selectedWorkout,
+    setCompletedExercises,
+    setExpandedMeals,
+    setSelectedWorkout,
+  })
 
   const dieta = [
     {
@@ -387,10 +408,44 @@ const App = () => {
             <p className="mb-3 text-xs text-slate-500">A URL da playlist é configurada por você no arquivo fonte e não fica editável pela Laura.</p>
             <p className="mb-3 break-all rounded-md bg-slate-50 px-3 py-2 text-xs text-slate-600">{spotifyPlaylistUrl}</p>
 
+            <div className="mb-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
+              <p className="font-bold text-slate-700">Supabase</p>
+              <p className="mt-1">
+                {supabaseConfigured
+                  ? `Conectado por configuração. Última sincronização: ${supabaseLastSyncedAt || 'nunca'}`
+                  : 'Configure VITE_SUPABASE_URL e VITE_SUPABASE_PUBLISHABLE_KEY para habilitar a sincronização.'}
+              </p>
+              {supabaseSyncDetail && <p className="mt-1 text-slate-500">{supabaseSyncDetail}</p>}
+            </div>
+
             <div className="flex gap-2">
               <button onClick={exportJSON} className="rounded-md bg-slate-900 px-3 py-2 text-xs font-bold text-white">Exportar Backup</button>
               <button onClick={() => fileInputRef.current?.click()} className="rounded-md border px-3 py-2 text-xs font-bold">Importar Backup</button>
               <input ref={fileInputRef} type="file" accept="application/json" onChange={handleFileInput} className="hidden" />
+            </div>
+
+            <div className="mt-3 flex gap-2">
+              <button
+                onClick={() => syncNow()}
+                disabled={!supabaseConfigured || supabaseSyncStatus !== 'idle'}
+                className="rounded-md bg-pink-500 px-3 py-2 text-xs font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {supabaseSyncStatus === 'idle' ? 'Sincronizar agora' : 'Sincronizando...'}
+              </button>
+              <button
+                onClick={() => pullFromSupabase()}
+                disabled={!supabaseConfigured || supabaseSyncStatus !== 'idle'}
+                className="rounded-md border px-3 py-2 text-xs font-bold disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Baixar do Supabase
+              </button>
+              <button
+                onClick={() => pushToSupabase()}
+                disabled={!supabaseConfigured || supabaseSyncStatus !== 'idle'}
+                className="rounded-md border px-3 py-2 text-xs font-bold disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Enviar para Supabase
+              </button>
             </div>
           </div>
         )}
