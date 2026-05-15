@@ -22,6 +22,11 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+.env
+.env.*
+!.env.example
+skills-lock.json
+.agents/
 
 # Arquivos locais gerados/baixados que não devem ir para o Git
 relatorios-*.pdf
