@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   Dumbbell,
   Utensils,
@@ -13,10 +13,8 @@ import {
   ChevronUp,
   Apple,
 } from 'lucide-react'
-import { useSupabaseSync } from './hooks/useSupabaseSync'
 
 const PHRASES = Array.from({ length: 50 }, (_, i) => `Mensagem do Felipe ${i + 1} — Te amo e torço por você!`)
-const SPOTIFY_PLAYLIST_URL = 'COLE_A_URL_DA_PLAYLIST_AQUI_NO_CODIGO'
 
 const App = () => {
   const [activeTab, setActiveTab] = useState('dieta')
@@ -50,29 +48,8 @@ const App = () => {
     }
   })
 
-  const [showSettings, setShowSettings] = useState(false)
-
   // Mensagens estáticas (editar apenas no código fonte)
   const phrases = PHRASES
-  const spotifyPlaylistUrl = SPOTIFY_PLAYLIST_URL
-  const fileInputRef = useRef(null)
-
-  const {
-    isConfigured: supabaseConfigured,
-    syncStatus: supabaseSyncStatus,
-    syncDetail: supabaseSyncDetail,
-    lastSyncedAt: supabaseLastSyncedAt,
-    pushToSupabase,
-    pullFromSupabase,
-    syncNow,
-  } = useSupabaseSync({
-    completedExercises,
-    expandedMeals,
-    selectedWorkout,
-    setCompletedExercises,
-    setExpandedMeals,
-    setSelectedWorkout,
-  })
 
   const dieta = [
     {
@@ -316,46 +293,6 @@ const App = () => {
     }
   }, [completedExercises, expandedMeals, selectedWorkout, phrases])
 
-  const exportJSON = () => {
-    const data = {
-      completedExercises,
-      expandedMeals,
-      selectedWorkout,
-      phrases,
-    }
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = 'laura-backup.json'
-    a.click()
-    URL.revokeObjectURL(url)
-  }
-
-  const importJSON = (file) => {
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      try {
-        const data = JSON.parse(e.target.result)
-        if (data.completedExercises) setCompletedExercises(data.completedExercises)
-        if (data.expandedMeals) setExpandedMeals(data.expandedMeals)
-        if (data.selectedWorkout) setSelectedWorkout(Number(data.selectedWorkout))
-        // notas: não importamos 'phrases' via UI — frases só editáveis no código
-        alert('Importação concluída com sucesso')
-      } catch (err) {
-        console.error('Erro ao importar JSON', err)
-        alert('Arquivo inválido')
-      }
-    }
-    reader.readAsText(file)
-  }
-
-  const handleFileInput = (e) => {
-    const f = e.target.files?.[0]
-    if (f) importJSON(f)
-    e.target.value = ''
-  }
-
   return (
     <div className="min-h-screen bg-gray-50 pb-28 font-sans text-slate-900">
       <header className="sticky top-0 z-50 border-b bg-white shadow-sm">
@@ -370,24 +307,14 @@ const App = () => {
             </div>
           </div>
           <div className="rounded-full border border-pink-100 bg-pink-50 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-pink-600">
-            Feminino 16
+            Treino 16
           </div>
         </div>
       </header>
 
       <main className="mx-auto max-w-md p-4">
-        {/* Settings toggle */}
-        <div className="mb-4 flex items-center justify-end">
-          <button
-            onClick={() => setShowSettings((s) => !s)}
-            className="rounded-xl border px-3 py-1 text-xs font-bold text-slate-600 hover:bg-slate-50"
-          >
-            {showSettings ? 'Fechar Config.' : 'Configurações'}
-          </button>
-        </div>
-
         {/* Mensagem do Dia (frases editáveis apenas via código) */}
-        <div className="mb-4 rounded-2xl border border-pink-100 bg-pink-50 p-4 shadow-sm">
+        {/* <div className="mb-4 rounded-2xl border border-pink-100 bg-pink-50 p-4 shadow-sm">
           <p className="text-xs font-black uppercase tracking-wider text-pink-600">Mensagem do Dia</p>
           <p className="mt-2 text-sm font-bold text-slate-800">{(() => {
             try {
@@ -400,55 +327,8 @@ const App = () => {
               return phrases[0]
             }
           })()}</p>
-        </div>
+        </div> */}
 
-        {showSettings && (
-          <div className="mb-4 rounded-2xl border bg-white p-4 shadow-sm">
-            <p className="mb-2 text-xs font-bold text-slate-600">Playlist Spotify definida no código</p>
-            <p className="mb-3 text-xs text-slate-500">A URL da playlist é configurada por você no arquivo fonte e não fica editável pela Laura.</p>
-            <p className="mb-3 break-all rounded-md bg-slate-50 px-3 py-2 text-xs text-slate-600">{spotifyPlaylistUrl}</p>
-
-            <div className="mb-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
-              <p className="font-bold text-slate-700">Supabase</p>
-              <p className="mt-1">
-                {supabaseConfigured
-                  ? `Conectado por configuração. Última sincronização: ${supabaseLastSyncedAt || 'nunca'}`
-                  : 'Configure VITE_SUPABASE_URL e VITE_SUPABASE_PUBLISHABLE_KEY para habilitar a sincronização.'}
-              </p>
-              {supabaseSyncDetail && <p className="mt-1 text-slate-500">{supabaseSyncDetail}</p>}
-            </div>
-
-            <div className="flex gap-2">
-              <button onClick={exportJSON} className="rounded-md bg-slate-900 px-3 py-2 text-xs font-bold text-white">Exportar Backup</button>
-              <button onClick={() => fileInputRef.current?.click()} className="rounded-md border px-3 py-2 text-xs font-bold">Importar Backup</button>
-              <input ref={fileInputRef} type="file" accept="application/json" onChange={handleFileInput} className="hidden" />
-            </div>
-
-            <div className="mt-3 flex gap-2">
-              <button
-                onClick={() => syncNow()}
-                disabled={!supabaseConfigured || supabaseSyncStatus !== 'idle'}
-                className="rounded-md bg-pink-500 px-3 py-2 text-xs font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {supabaseSyncStatus === 'idle' ? 'Sincronizar agora' : 'Sincronizando...'}
-              </button>
-              <button
-                onClick={() => pullFromSupabase()}
-                disabled={!supabaseConfigured || supabaseSyncStatus !== 'idle'}
-                className="rounded-md border px-3 py-2 text-xs font-bold disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                Baixar do Supabase
-              </button>
-              <button
-                onClick={() => pushToSupabase()}
-                disabled={!supabaseConfigured || supabaseSyncStatus !== 'idle'}
-                className="rounded-md border px-3 py-2 text-xs font-bold disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                Enviar para Supabase
-              </button>
-            </div>
-          </div>
-        )}
         <div className="mb-6 flex rounded-2xl border bg-white p-1 shadow-sm">
           <button
             onClick={() => setActiveTab('dieta')}
